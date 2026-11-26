@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LLM Pipeline Explorer</title>
+  <!-- WHAT THIS DOES: Loads Plotly.js from its official CDN so the page can draw interactive charts -->
+  <script src="https://cdn.plot.ly/plotly-4.1.1.min.js" charset="utf-8"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- WHAT THIS DOES: Main page container that centers the header and pipeline sections -->
+  <div class="page-container">
+    <header class="hero">
+      <div>
+        <p class="hero-kicker">Interactive machine learning lab</p>
+        <h1>LLM Pipeline Explorer</h1>
+        <p class="hero-description">Explore how text becomes tokens, vectors, and semantic relationships.</p>
+      </div>
+      <nav class="hero-nav" aria-label="Pipeline sections">
+        <a href="#tokenizer-section">01 Tokenizer</a>
+        <a href="#embeddings-section">02 Embeddings</a>
+      </nav>
+    </header>
+
+    <main>
+    <!-- WHAT THIS DOES: Section 1 layout for the Tokenizer with training sentences, vocabulary creation, sentence encoding, and tokenize controls -->
+    <section id="tokenizer-section" class="section-card">
+      <h2>Tokenizer</h2>
+
+      <div class="form-group">
+        <label for="training-sentences">Training sentences</label>
+        <textarea id="training-sentences" rows="7">The quick brown fox jumps over the lazy dog.
+A cat sat on the warm mat.
+The sun shines brightly in the sky.
+Birds sing sweet songs in the morning.
+We love reading books about science.
+Apples and oranges are delicious fruits.</textarea>
+      </div>
+
+      <div class="button-group">
+        <button type="button" id="build-vocab-btn">Build vocabulary</button>
+      </div>
+
+      <!-- WHAT THIS DOES: Contains the vocabulary size, word limit slider, and scrollable ID/token/count table -->
+      <div id="vocab-display" class="vocab-display" style="display: none;">
+        <!-- WHAT THIS DOES: Lets the user choose how many of the most frequent training tokens to keep -->
+        <div id="vocab-limit-controls" class="vocab-limit-controls" style="display: none;">
+          <label for="vocab-limit-slider">
+            Words kept: <span id="words-kept-count">0</span> of <span id="words-total-count">0</span>
+          </label>
+          <input id="vocab-limit-slider" type="range" min="0" max="0" value="0" disabled>
+        </div>
+        <p id="vocab-size" class="vocab-size"></p>
+        <div class="vocab-table-container">
+          <table class="vocab-table">
+            <thead>
+              <tr>
+                <th scope="col">ID</th>
+                <th scope="col">token</th>
+                <th scope="col">count</th>
+              </tr>
+            </thead>
+            <tbody id="vocab-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="encode-sentence">Encode a sentence</label>
+        <textarea id="encode-sentence" rows="2">The astronaut traveled to a distant galaxy.</textarea>
+      </div>
+
+      <div class="button-group">
+        <button type="button" id="tokenize-btn">Tokenize</button>
+      </div>
+
+      <!-- WHAT THIS DOES: Shows token IDs, tokenization statistics, and a note about unknown words -->
+      <div id="tokenize-results" class="tokenize-results" style="display: none;" aria-live="polite">
+        <p id="tokenize-message" class="tokenize-message" style="display: none;"></p>
+        <div id="tokenize-details" style="display: none;">
+          <div class="token-statistics">
+            <span>Characters: <strong id="character-count"></strong></span>
+            <span>Tokens: <strong id="token-count"></strong></span>
+            <span>Characters per token: <strong id="characters-per-token"></strong></span>
+          </div>
+          <div id="token-list" class="token-list"></div>
+          <p class="tokenize-note">Unknown words are broken into smaller pieces.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- WHAT THIS DOES: Section 2 layout for embeddings, mode and chart controls, analysis results, and responsive visualization -->
+    <section id="embeddings-section" class="section-card">
+      <h2>Embeddings in 3D</h2>
+
+      <div class="form-group">
+        <label for="embedding-sentences">Sentences (one per line)</label>
+        <textarea id="embedding-sentences" rows="9">The cat sat on the mat.
+A kitten rested on the rug.
+The bat sat on the mat.
+I love programming in Python.
+Coding in Python is my passion.
+Pythons are large snakes.
+The stock market crashed today.
+Share prices fell sharply.</textarea>
+      </div>
+
+      <fieldset class="radio-group">
+        <legend class="visually-hidden">Embedding mode</legend>
+        <label class="radio-label">
+          <input type="radio" name="embedding-type" value="spelling" checked>
+          Spelling-based
+        </label>
+        <label class="radio-label">
+          <input type="radio" name="embedding-type" value="meaning">
+          Meaning-based
+        </label>
+      </fieldset>
+
+      <div class="button-group">
+        <button type="button" id="embed-plot-btn">Embed and plot</button>
+      </div>
+
+      <!-- WHAT THIS DOES: Displays loading progress for meaning-based models or a fallback notice -->
+      <p id="embedding-status" class="embedding-status" role="status" aria-live="polite" style="display: none;"></p>
+
+      <!-- WHAT THIS DOES: Provides chart view, label, and vector-export controls -->
+      <div class="analysis-toolbar">
+        <div class="projection-title">
+          <span class="eyebrow">Vector space</span>
+          <span id="chart-view-title">3D projection</span>
+        </div>
+        <div class="chart-view-controls" role="group" aria-label="Chart view">
+          <button id="chart-view-3d-btn" class="chart-view-button" type="button" aria-pressed="true">
+            3D map
+          </button>
+          <button id="chart-view-similarity-btn" class="chart-view-button" type="button" aria-pressed="false">
+            Similarity matrix
+          </button>
+        </div>
+        <label class="label-toggle" for="chart-label-toggle">
+          <input id="chart-label-toggle" type="checkbox" checked>
+          Show point labels
+        </label>
+        <button id="export-embeddings-btn" class="button-secondary" type="button" disabled>
+          Export vectors (.csv)
+        </button>
+      </div>
+      <p id="chart-view-description" class="chart-view-description" role="status" aria-live="polite">
+        A simple projection combines vector values with cosine and sine waves to create three coordinates. Rotate or zoom the chart to explore sentence positions.
+      </p>
+
+      <!-- WHAT THIS DOES: Provides a responsive chart area for the selected 3D or similarity view -->
+      <div class="chart-container">
+        <p id="chart-message" class="chart-message" role="status" style="display: none;"></p>
+        <div id="embedding-chart" role="region" aria-label="Interactive sentence embedding chart" aria-describedby="chart-view-description"></div>
+      </div>
+
+      <!-- WHAT THIS DOES: Summarizes the active embedding run with sentence count, vector size, method, and top similarity -->
+      <div id="embedding-summary" class="embedding-summary" style="display: none;">
+        <div class="summary-card">
+          <span class="summary-label">Sentences embedded</span>
+          <strong id="summary-sentences" class="summary-value">0</strong>
+        </div>
+        <div class="summary-card">
+          <span class="summary-label">Vector dimensions</span>
+          <strong id="summary-dimensions" class="summary-value">0</strong>
+        </div>
+        <div class="summary-card">
+          <span class="summary-label">Embedding method</span>
+          <strong id="summary-method" class="summary-value">--</strong>
+        </div>
+        <div class="summary-card">
+          <span class="summary-label">Top similarity</span>
+          <strong id="summary-similarity" class="summary-value">--</strong>
+        </div>
+      </div>
+
+      <!-- WHAT THIS DOES: Lists the sentence pairs that are closest in the active embedding mode -->
+      <div class="closest-pairs">
+        <h3>Closest pairs</h3>
+        <p id="closest-pairs-message">Generate embeddings to see the closest pairs.</p>
+        <div id="closest-pairs-table-container" class="similarity-table-container" style="display: none;">
+          <table class="similarity-table">
+            <thead>
+              <tr>
+                <th scope="col">Sentence 1</th>
+                <th scope="col">Sentence 2</th>
+                <th scope="col">Cosine similarity</th>
+              </tr>
+            </thead>
+            <tbody id="closest-pairs-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- WHAT THIS DOES: Accepts a custom sentence and displays its tokens, embedding values, and nearest neighbors -->
+      <div class="custom-sentence-section">
+        <h3>Add to the plot</h3>
+        <div class="form-group">
+          <label for="custom-sentence-input">Try your own word or sentence</label>
+          <input id="custom-sentence-input" type="text">
+        </div>
+        <div class="button-group">
+          <button type="button" id="add-custom-sentence-btn">Tokenize, embed &amp; add to plot</button>
+        </div>
+        <p id="custom-sentence-message" class="custom-sentence-message" role="status" style="display: none;"></p>
+        <div id="custom-sentence-results" class="custom-sentence-results" style="display: none;">
+          <p><strong>First eight embedding values:</strong> <span id="custom-embedding-values"></span></p>
+          <h4>Three closest sentences</h4>
+          <ul id="custom-neighbors"></ul>
+        </div>
+      </div>
+    </section>
+    </main>
+  </div>
+
+  <script src="script.js" defer></script>
+</body>
+</html>
